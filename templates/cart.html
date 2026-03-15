@@ -1,0 +1,30 @@
+<div class="floating-cart" onclick="openCart()">
+    <i class="fa fa-shopping-cart"></i>
+    <span id="cart-count">0</span>
+</div>
+
+<div class="cart-drawer" id="cartDrawer">
+
+    <div class="cart-header">
+        <h3>Your Cart</h3>
+        <span class="cart-close" onclick="closeCart()">✖</span>
+    </div>
+
+    <div id="cart-items" class="cart-items"></div>
+
+    <div class="cart-footer">
+        <h4 id="cart-total">Total: ₹0</h4>
+        <button class="pay-btn" onclick="openPayment()">Pay</button>
+    </div>
+
+</div>
+
+<div id="paymentModal" class="payment-modal">
+    <div class="payment-box">
+        <span class="close-btn" onclick="closePayment()">✖</span>
+        <h3>Select Payment Method</h3>
+        <button onclick="placeOrder()">UPI</button>
+        <button onclick="placeOrder()">Card</button>
+        <button onclick="placeOrder()">Cash</button>
+    </div>
+</div>

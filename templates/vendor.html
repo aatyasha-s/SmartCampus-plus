@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ vendor_name }} - Kitchen Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<header class="main-header">
+    <h2><i class="fa-solid fa-fire-burner"></i> {{ vendor_name }} Kitchen</h2>
+    <div>
+        <span style="color: #10b981; margin-right: 20px;">● Accepting Orders</span>
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+</header>
+
+<div class="container">
+    <h2 style="margin-bottom: 20px;">Live Tickets</h2>
+    
+    <div class="food-grid">
+        {% for order in orders %}
+        <div class="food-card" style="border-top: 5px solid {{ '#f59e0b' if order[4] == 'Preparing' else '#10b981' }}; text-align: left;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 10px;">
+                <h3 style="margin: 0;">#{{ order[0] }}</h3>
+                <span style="background: {{ '#f59e0b' if order[4] == 'Preparing' else '#10b981' }}; color: {{ 'black' if order[4] == 'Preparing' else 'white' }}; padding: 3px 8px; border-radius: 5px; font-size: 12px; font-weight: bold;">
+                    {{ order[4] }}
+                </span>
+            </div>
+            
+            <p style="margin: 5px 0;"><i class="fa-solid fa-user" style="color: #94a3b8; width: 20px;"></i> <strong>{{ order[1] }}</strong></p>
+            <p style="margin: 5px 0; font-size: 18px;"><i class="fa-solid fa-utensils" style="color: #94a3b8; width: 20px;"></i> {{ order[2] }} <strong>(x{{ order[3] }})</strong></p>
+            
+            {% if order[4] == 'Preparing' %}
+            <form action="/vendor/update_order/{{ order[0] }}" method="POST" style="margin-top: 15px;">
+                <input type="hidden" name="action" value="ready">
+                <button type="submit" style="width: 100%; background: #38bdf8; color: black; font-weight: bold; padding: 10px; border-radius: 6px; cursor: pointer;">
+                    <i class="fa-solid fa-bell"></i> Mark as Ready
+                </button>
+            </form>
+            {% else %}
+            <form action="/vendor/update_order/{{ order[0] }}" method="POST" style="margin-top: 15px;">
+                <input type="hidden" name="action" value="completed">
+                <button type="submit" style="width: 100%; background: #10b981; color: white; font-weight: bold; padding: 10px; border-radius: 6px; cursor: pointer;">
+                    <i class="fa-solid fa-check-double"></i> Handed to Student
+                </button>
+            </form>
+            {% endif %}
+
+        </div>
+        {% else %}
+        <div style="grid-column: 1 / -1; text-align: center; padding: 50px; background: #1e293b; border-radius: 15px;">
+            <i class="fa-solid fa-mug-hot fa-4x" style="color: #475569; margin-bottom: 15px;"></i>
+            <h3 style="color: #94a3b8;">No pending orders right now.</h3>
+            <p style="color: #64748b;">The kitchen is clear!</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+</body>
+</html>
