@@ -10,11 +10,13 @@ def init_db():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
 
+    # ADDED: 'vendor_name' column to dynamically link logins to restaurants
     c.execute("""CREATE TABLE IF NOT EXISTS users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
         password TEXT,
-        role TEXT DEFAULT 'student'
+        role TEXT DEFAULT 'student',
+        vendor_name TEXT
     )""")
 
     c.execute("""CREATE TABLE IF NOT EXISTS vendors(
@@ -23,12 +25,14 @@ def init_db():
         status TEXT DEFAULT 'Open'
     )""")
 
+    # ADDED: 'availability' column for menu management
     c.execute("""CREATE TABLE IF NOT EXISTS menu(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         vendor_name TEXT,
         item_name TEXT,
         price INTEGER,
-        icon TEXT DEFAULT 'fa-bowl-food'
+        icon TEXT DEFAULT 'fa-bowl-food',
+        availability TEXT DEFAULT 'Available'
     )""")
 
     c.execute("""CREATE TABLE IF NOT EXISTS cart(
@@ -40,7 +44,6 @@ def init_db():
         quantity INTEGER
     )""")
 
-    # NEW: Orders table for the kitchen
     c.execute("""CREATE TABLE IF NOT EXISTS orders(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_name TEXT,
@@ -69,19 +72,21 @@ def init_db():
         date TEXT
     )""")
 
-    # Seed Users (Admin, Student, Vendors)
+    # Seed Default Users
     c.execute("INSERT OR IGNORE INTO users(username, password, role) VALUES('student', '1234', 'student')")
     c.execute("INSERT OR IGNORE INTO users(username, password, role) VALUES('admin', 'admin123', 'admin')")
-    c.execute("INSERT OR IGNORE INTO users(username, password, role) VALUES('snapeats', 'vendor123', 'vendor')")
-    c.execute("INSERT OR IGNORE INTO users(username, password, role) VALUES('infinity', 'vendor123', 'vendor')")
-    c.execute("INSERT OR IGNORE INTO users(username, password, role) VALUES('chow', 'vendor123', 'vendor')")
     
-    # Seed Vendors
-    vendors_list = ["Snap Eats", "Infinity Kitchen", "House of Chow"]
-    for v_name in vendors_list:
+    # Seed Default Vendors & Their Logins
+    default_vendors = [
+        ("Snap Eats", "snapeats", "vendor123"),
+        ("Infinity Kitchen", "infinity", "vendor123"),
+        ("House of Chow", "chow", "vendor123")
+    ]
+    for v_name, u_name, pwd in default_vendors:
         c.execute("INSERT OR IGNORE INTO vendors (name) VALUES (?)", (v_name,))
+        c.execute("INSERT OR IGNORE INTO users (username, password, role, vendor_name) VALUES (?, ?, 'vendor', ?)", (u_name, pwd, v_name))
 
-    # Seed Menu
+    # Seed Default Menu
     c.execute("SELECT COUNT(*) FROM menu")
     if c.fetchone()[0] == 0:
         default_menu = [
@@ -105,7 +110,7 @@ def init_db():
 
 init_db()
 
-# ---------- ROUTES ----------
+# ---------- AUTH ROUTES ----------
 
 @app.route("/")
 def home():
@@ -129,10 +134,28 @@ def login():
         if user[1] == "admin":
             return redirect("/admin")
         elif user[1] == "vendor":
-            return redirect("/vendor") # This points to the Vendor Route below!
+            return redirect("/vendor")
         return redirect("/dashboard")
         
     return render_template("login.html", error="Invalid Credentials")
+
+@app.route("/register", methods=["POST"])
+def register():
+    username = request.form["new_username"]
+    password = request.form["new_password"]
+    
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    try:
+        c.execute("INSERT INTO users (username, password, role) VALUES (?, ?, 'student')", (username, password))
+        conn.commit()
+        msg = "Registration successful! You can now log in."
+    except sqlite3.IntegrityError:
+        msg = "Username already exists. Please choose another."
+    finally:
+        conn.close()
+        
+    return render_template("login.html", error=msg)
 
 @app.route("/dashboard")
 def dashboard():
@@ -160,18 +183,29 @@ def admin_panel():
     vendors = c.fetchall()
     c.execute("SELECT * FROM users WHERE role='student'")
     students = c.fetchall()
+    # Fetch menu items to display for editing
+    c.execute("SELECT * FROM menu")
+    menu_items = c.fetchall()
     conn.close()
     
-    return render_template("admin.html", vendors=vendors, students=students)
+    return render_template("admin.html", vendors=vendors, students=students, menu_items=menu_items)
 
 @app.route("/admin/add_vendor", methods=["POST"])
 def add_vendor():
     if session.get("role") == "admin":
         name = request.form["vendor_name"]
+        username = request.form["vendor_username"]
+        password = request.form["vendor_password"]
+        
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
-        c.execute("INSERT OR IGNORE INTO vendors (name) VALUES (?)", (name,))
-        conn.commit()
+        try:
+            c.execute("INSERT INTO vendors (name) VALUES (?)", (name,))
+            # Create the vendor's login credentials dynamically!
+            c.execute("INSERT INTO users (username, password, role, vendor_name) VALUES (?, ?, 'vendor', ?)", (username, password, name))
+            conn.commit()
+        except:
+            pass # Ignore if already exists for now
         conn.close()
     return redirect("/admin")
 
@@ -184,6 +218,7 @@ def delete_vendor(id):
         vendor = c.fetchone()
         if vendor:
             c.execute("DELETE FROM menu WHERE vendor_name=?", (vendor[0],))
+            c.execute("DELETE FROM users WHERE vendor_name=?", (vendor[0],)) # Delete their login too!
             c.execute("DELETE FROM vendors WHERE id=?", (id,))
         conn.commit()
         conn.close()
@@ -199,35 +234,68 @@ def toggle_vendor(id):
         conn.close()
     return redirect("/admin")
 
+# --- NEW MENU MANAGEMENT ROUTES ---
+
 @app.route("/admin/add_food", methods=["POST"])
 def add_food():
     if session.get("role") == "admin":
         vendor_name = request.form["vendor_name"]
         item_name = request.form["item_name"]
         price = request.form["price"]
+        icon = request.form["icon"] or "fa-bowl-food" # Default icon if left blank
         conn = sqlite3.connect("database.db")
         c = conn.cursor()
-        c.execute("INSERT INTO menu (vendor_name, item_name, price) VALUES (?, ?, ?)", (vendor_name, item_name, price))
+        c.execute("INSERT INTO menu (vendor_name, item_name, price, icon) VALUES (?, ?, ?, ?)", (vendor_name, item_name, price, icon))
         conn.commit()
         conn.close()
     return redirect("/admin")
 
-# ---------- VENDOR ROUTES (Fixes the 404 Error!) ----------
+@app.route("/admin/delete_food/<int:id>", methods=["POST"])
+def delete_food(id):
+    if session.get("role") == "admin":
+        conn = sqlite3.connect("database.db")
+        c = conn.cursor()
+        c.execute("DELETE FROM menu WHERE id=?", (id,))
+        conn.commit()
+        conn.close()
+    return redirect("/admin")
+
+@app.route("/admin/toggle_food/<int:id>", methods=["POST"])
+def toggle_food(id):
+    if session.get("role") == "admin":
+        conn = sqlite3.connect("database.db")
+        c = conn.cursor()
+        c.execute("UPDATE menu SET availability = CASE WHEN availability='Available' THEN 'Unavailable' ELSE 'Available' END WHERE id=?", (id,))
+        conn.commit()
+        conn.close()
+    return redirect("/admin")
+
+@app.route("/admin/edit_food_price/<int:id>", methods=["POST"])
+def edit_food_price(id):
+    if session.get("role") == "admin":
+        new_price = request.form["new_price"]
+        conn = sqlite3.connect("database.db")
+        c = conn.cursor()
+        c.execute("UPDATE menu SET price=? WHERE id=?", (new_price, id))
+        conn.commit()
+        conn.close()
+    return redirect("/admin")
+
+
+# ---------- VENDOR ROUTES ----------
 
 @app.route("/vendor")
 def vendor_panel():
     if "user" not in session or session.get("role") != "vendor":
         return redirect("/")
     
-    username_to_vendor = {
-        "snapeats": "Snap Eats",
-        "infinity": "Infinity Kitchen",
-        "chow": "House of Chow"
-    }
-    vendor_name = username_to_vendor.get(session["user"], "Unknown")
-
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
+    # Dynamically find out which restaurant this user belongs to!
+    c.execute("SELECT vendor_name FROM users WHERE username=?", (session["user"],))
+    vendor_data = c.fetchone()
+    vendor_name = vendor_data[0] if vendor_data else "Unknown"
+
     c.execute("SELECT id, student_name, item, quantity, status FROM orders WHERE vendor_name=? AND status != 'Completed' ORDER BY id ASC", (vendor_name,))
     orders = c.fetchall()
     conn.close()
@@ -253,7 +321,8 @@ def update_order(order_id):
 def get_menu(vendor_name):
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute("SELECT item_name, price, icon FROM menu WHERE vendor_name=?", (vendor_name,))
+    # Only fetch items that are marked as 'Available'
+    c.execute("SELECT item_name, price, icon FROM menu WHERE vendor_name=? AND availability='Available'", (vendor_name,))
     menu = c.fetchall()
     conn.close()
     return jsonify([{"name": m[0], "price": m[1], "icon": m[2]} for m in menu])
@@ -295,19 +364,11 @@ def checkout():
     user = session["user"]
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    
-    # 1. Get cart items
     c.execute("SELECT vendor_name, item, quantity FROM cart WHERE username=?", (user,))
     cart_items = c.fetchall()
-    
-    # 2. Move to vendor orders
     for item in cart_items:
-        c.execute("INSERT INTO orders (student_name, vendor_name, item, quantity) VALUES (?, ?, ?, ?)", 
-                  (user, item[0], item[1], item[2]))
-        
-    # 3. Clear cart
+        c.execute("INSERT INTO orders (student_name, vendor_name, item, quantity) VALUES (?, ?, ?, ?)", (user, item[0], item[1], item[2]))
     c.execute("DELETE FROM cart WHERE username=?", (user,))
-    
     conn.commit()
     conn.close()
     return jsonify({"status": "order_placed"})
@@ -321,13 +382,11 @@ def update_quantity():
 
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-
     if action == "increase":
         c.execute("UPDATE cart SET quantity=quantity+1 WHERE username=? AND item=?", (user, item))
     elif action == "decrease":
         c.execute("UPDATE cart SET quantity=quantity-1 WHERE username=? AND item=?", (user, item))
         c.execute("DELETE FROM cart WHERE username=? AND item=? AND quantity<=0", (user, item))
-
     conn.commit()
     conn.close()
     return jsonify({"status": "updated"})
