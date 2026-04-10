@@ -20,6 +20,9 @@ def init_db():
     c.execute("""CREATE TABLE IF NOT EXISTS seats(id INTEGER PRIMARY KEY AUTOINCREMENT, seat_no TEXT, status TEXT DEFAULT 'Available')""")
     c.execute("""CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, description TEXT, date TEXT)""")
 
+    # --- NEW: Room Bookings Table ---
+    c.execute("""CREATE TABLE IF NOT EXISTS room_bookings(id INTEGER PRIMARY KEY AUTOINCREMENT, room_name TEXT, student_name TEXT, booking_date TEXT, time_slot TEXT)""")
+
     # SAFE UPGRADE: Advanced Features & Customizations
     columns_to_add = [
         ("vendors", "revenue", "INTEGER DEFAULT 0"),
@@ -32,9 +35,9 @@ def init_db():
         ("menu", "category", "TEXT DEFAULT 'Main'"),
         ("menu", "diet", "TEXT DEFAULT 'Veg'"),
         ("menu", "description", "TEXT DEFAULT ''"),
-        ("menu", "is_customizable", "TEXT DEFAULT 'No'"), # NEW
-        ("menu", "half_price", "INTEGER DEFAULT 0"),      # NEW
-        ("menu", "addons", "TEXT DEFAULT ''"),            # NEW
+        ("menu", "is_customizable", "TEXT DEFAULT 'No'"), 
+        ("menu", "half_price", "INTEGER DEFAULT 0"),      
+        ("menu", "addons", "TEXT DEFAULT ''"),            
         ("orders", "total_price", "INTEGER DEFAULT 0"),
         ("orders", "timestamp", "TEXT DEFAULT 'N/A'"),
         ("orders", "estimated_time", "TEXT DEFAULT 'Pending Vendor Approval'")
@@ -46,6 +49,14 @@ def init_db():
             pass 
 
     c.execute("INSERT OR IGNORE INTO users(username, password, role) VALUES('admin', 'admin123', 'admin')")
+    
+    # --- NEW: Auto-generate specific rooms if the table is empty ---
+    c.execute("SELECT COUNT(*) FROM rooms")
+    if c.fetchone()[0] == 0:
+        for i in range(101, 105): c.execute("INSERT INTO rooms (room_name, status) VALUES (?, 'Lecture Hall')", (f"NLH{i}",))
+        for i in range(105, 116): c.execute("INSERT INTO rooms (room_name, status) VALUES (?, 'Small Classroom')", (f"NTR{i}",))
+        for i in range(116, 129): c.execute("INSERT INTO rooms (room_name, status) VALUES (?, 'Medium Classroom')", (f"NCA{i}",))
+
     conn.commit()
     conn.close()
 
@@ -118,6 +129,7 @@ def dashboard():
     
     conn.close()
     return render_template("dashboard.html", user=session["user"], vendors=vendors, active_orders=active_orders, past_orders=past_orders, rooms=rooms, seats=seats, events=events)
+
 # ---------- ADMIN ROUTES ----------
 
 @app.route("/admin")
@@ -353,7 +365,7 @@ def get_menu(vendor_name):
 def add_to_cart():
     data = request.json
     user = session["user"]
-    item = data["item"] # This string might now contain "(Half) + Naan"
+    item = data["item"] 
     price = data["price"]
     vendor = data.get("vendor_name", "Unknown")
 
@@ -406,6 +418,53 @@ def update_quantity():
 @app.route("/remove_item", methods=["POST"])
 def remove_item():
     c = sqlite3.connect("database.db").cursor(); c.execute("DELETE FROM cart WHERE username=? AND item=?", (session["user"], request.json["item"])); c.connection.commit(); return jsonify({"status": "removed"})
+
+
+# ==========================================
+# NEW ROOM RESERVATION APIs (ADDED SAFELY)
+# ==========================================
+
+@app.route("/api/rooms/check")
+def check_rooms():
+    date = request.args.get("date")
+    time_slot = request.args.get("time")
+    
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute("SELECT room_name, status FROM rooms")
+    all_rooms = c.fetchall()
+    
+    # Check if any rooms are booked for this exact date and time
+    c.execute("SELECT room_name FROM room_bookings WHERE booking_date=? AND time_slot=?", (date, time_slot))
+    booked_rooms = [row[0] for row in c.fetchall()] 
+    
+    results = []
+    for room in all_rooms:
+        room_name = room[0]
+        room_type = room[1]
+        if room_name in booked_rooms:
+            results.append({"name": room_name, "type": room_type, "status": "Occupied"}) # Taken!
+        else:
+            results.append({"name": room_name, "type": room_type, "status": "Available"}) # Free!
+            
+    conn.close()
+    return jsonify(results)
+
+@app.route("/api/rooms/book", methods=["POST"])
+def book_room():
+    data = request.json
+    user = session["user"]
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    
+    # Save the new booking into the database
+    c.execute("INSERT INTO room_bookings (room_name, student_name, booking_date, time_slot) VALUES (?, ?, ?, ?)", 
+              (data["room"], user, data["date"], data["time"]))
+              
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "success"})
+
 
 @app.route("/logout")
 def logout():
