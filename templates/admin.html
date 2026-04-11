@@ -166,7 +166,6 @@
                 {% endfor %}
             </tbody>
         </table>
-
     </div>
 
     <div id="students-tab" class="tab-content">
@@ -184,15 +183,96 @@
     </div>
     
     <div id="rooms-tab" class="tab-content">
-        <h3>Group Discussion Rooms</h3>
+        
+        <h3 style="margin-top: 0;"><i class="fa fa-door-open"></i> Room Reservation Requests</h3>
+        <table style="width:100%; border-collapse: collapse; background: #1e293b; border-radius: 10px; overflow: hidden; margin-bottom: 30px; font-size: 14px;">
+            <thead style="background: #334155;">
+                <tr>
+                    <th style="padding: 12px; text-align: left;">Student</th>
+                    <th style="padding: 12px; text-align: left;">Room</th>
+                    <th style="padding: 12px; text-align: left;">Date & Time</th>
+                    <th style="padding: 12px; text-align: left;">Status</th>
+                    <th style="padding: 12px; text-align: left;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in room_requests %}
+                <tr style="border-bottom: 1px solid #334155;">
+                    <td style="padding: 12px; color: white;">{{ req[2] }}</td>
+                    <td style="padding: 12px; color: #38bdf8; font-weight: bold;">{{ req[1] }}</td>
+                    <td style="padding: 12px; color: #94a3b8;">{{ req[3] }} <br> <span style="font-size:12px;">{{ req[4] }}</span></td>
+                    <td style="padding: 12px;">
+                        <span style="padding: 5px 10px; border-radius: 5px; font-size: 12px; background: {{ '#f59e0b' if req[5] == 'Pending' else ('#10b981' if req[5] == 'Approved' else '#ef4444') }}; color: {{ 'black' if req[5] == 'Pending' else 'white' }};">
+                            {{ req[5] }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px;">
+                        {% if req[5] == 'Pending' %}
+                        <form action="/admin/room_action" method="POST" style="display:inline;">
+                            <input type="hidden" name="request_id" value="{{ req[0] }}">
+                            <input type="hidden" name="action" value="approve">
+                            <button type="submit" style="background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer; margin-right: 5px;"><i class="fa fa-check"></i></button>
+                        </form>
+                        <form action="/admin/room_action" method="POST" style="display:inline;">
+                            <input type="hidden" name="request_id" value="{{ req[0] }}">
+                            <input type="hidden" name="action" value="reject">
+                            <button type="submit" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer;"><i class="fa fa-xmark"></i></button>
+                        </form>
+                        {% else %}
+                            <span style="color: #94a3b8; font-size: 12px;">Done</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="padding: 20px; text-align: center; color: #94a3b8;">No room requests right now.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <hr style="border-color: #334155; margin: 30px 0;">
+
+        <div style="background: #1e293b; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3><i class="fa fa-plus"></i> Add New Room</h3>
+            <form action="/admin/add_room" method="POST" style="display: flex; gap: 10px; margin-top: 15px;">
+                <input type="text" name="room_name" placeholder="Room Name (e.g. NLH101)" required style="flex: 2; padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
+                <select name="room_type" required style="flex: 2; padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
+                    <option value="Lecture Hall">Lecture Hall</option>
+                    <option value="Tutorial room">Tutorial Room</option>
+                    <option value="Classroom">Classroom</option>
+                </select>
+                <button type="submit" style="flex: 1; background: #38bdf8; color: black; font-weight: bold; border-radius: 5px; cursor: pointer; border: none;">Add Room</button>
+            </form>
+        </div>
+
+        <h3>Campus Rooms Status</h3>
         <div class="food-grid" style="margin-bottom: 30px;">
             {% for room in rooms %}
-            <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-top: 4px solid {{ '#10b981' if room[2] == 'Available' else '#ef4444' }};">
-                <h4><i class="fa fa-door-open"></i> {{ room[1] }}</h4>
-                <p>Status: <strong style="color: {{ '#10b981' if room[2] == 'Available' else '#ef4444' }}">{{ room[2] }}</strong></p>
+            <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-top: 4px solid #38bdf8;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin: 0;"><i class="fa fa-door-open"></i> {{ room[1] }}</h4>
+                    <form action="/admin/delete_room/{{ room[0] }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this room?');">
+                        <button type="submit" style="background: transparent; color: #ef4444; border: none; cursor: pointer;"><i class="fa fa-trash"></i></button>
+                    </form>
+                </div>
+                
+                <p style="margin: 0 0 15px 0; font-size: 12px; color: #94a3b8;">Type: <strong>{{ room[2] }}</strong></p>
+                
+                <form action="/admin/edit_room/{{ room[0] }}" method="POST" style="display: flex; gap: 5px;">
+                    <input type="text" name="new_name" value="{{ room[1] }}" required style="width: 50%; padding: 6px; border-radius: 4px; background: #0f172a; color: white; border: 1px solid #334155; font-size: 12px;">
+                    <select name="new_type" required style="width: 50%; padding: 6px; border-radius: 4px; background: #0f172a; color: white; border: 1px solid #334155; font-size: 12px;">
+                        <option value="Lecture Hall" {% if room[2] == 'Lecture Hall' %}selected{% endif %}>Lecture Hall</option>
+                        <option value="Tutorial room" {% if room[2] == 'Tutorial room' %}selected{% endif %}>Tutorial Room</option>
+                        <option value="Classroom" {% if room[2] == 'Classroom' %}selected{% endif %}>Classroom</option>
+                    </select>
+                    <button type="submit" style="padding: 6px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;"><i class="fa fa-save"></i></button>
+                </form>
+
             </div>
             {% endfor %}
         </div>
+
+        <hr style="border-color: #334155; margin: 30px 0;">
 
         <h3>Library Seats</h3>
         <div class="food-grid">
@@ -206,18 +286,59 @@
     </div>
 
     <div id="events-tab" class="tab-content">
-        <h3>Campus Events</h3>
-        <div class="food-grid">
-            {% for event in events %}
-            <div style="background: #1e293b; padding: 15px; border-radius: 8px; border-left: 4px solid #38bdf8;">
-                <h4 style="color: #38bdf8; margin-top: 0;">{{ event[1] }}</h4>
-                <p style="font-size: 12px; color: #94a3b8;"><i class="fa fa-calendar"></i> {{ event[3] }}</p>
-                <p style="font-size: 14px;">{{ event[2] }}</p>
-            </div>
-            {% else %}
-            <p style="color: #94a3b8;">No events currently scheduled.</p>
-            {% endfor %}
-        </div>
+        <h3 style="margin-top: 0;"><i class="fa fa-bullhorn"></i> Event Approvals & Management</h3>
+        <table style="width:100%; border-collapse: collapse; background: #1e293b; border-radius: 10px; overflow: hidden; margin-bottom: 30px; font-size: 14px;">
+            <thead style="background: #334155;">
+                <tr>
+                    <th style="padding: 12px; text-align: left;">Event Details</th>
+                    <th style="padding: 12px; text-align: left;">Category / Org</th>
+                    <th style="padding: 12px; text-align: left;">Status</th>
+                    <th style="padding: 12px; text-align: left;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ev in events %}
+                <tr style="border-bottom: 1px solid #334155;">
+                    <td style="padding: 12px;">
+                        <strong style="color: #38bdf8; font-size: 16px;">{{ ev[1] }}</strong><br>
+                        <span style="font-size: 12px; color: #94a3b8;"><i class="fa fa-calendar"></i> {{ ev[3] }} | <i class="fa fa-clock"></i> {{ ev[4] }}</span><br>
+                        <span style="font-size: 12px; color: #94a3b8;"><i class="fa fa-location-dot"></i> {{ ev[5] }}</span>
+                    </td>
+                    <td style="padding: 12px;">
+                        <span style="background: #334155; padding: 3px 8px; border-radius: 12px; font-size: 11px;">{{ ev[6] }}</span><br>
+                        <span style="font-size: 12px; color: #cbd5e1; margin-top: 5px; display: block;">By: {{ ev[7] }}</span>
+                    </td>
+                    <td style="padding: 12px;">
+                        <span style="padding: 5px 10px; border-radius: 5px; font-size: 12px; background: {{ '#f59e0b' if ev[8] == 'Pending' else ('#10b981' if ev[8] == 'Approved' else '#ef4444') }}; color: {{ 'black' if ev[8] == 'Pending' else 'white' }};">
+                            {{ ev[8] }}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; display: flex; gap: 5px;">
+                        {% if ev[8] == 'Pending' %}
+                            <form action="/admin/event_action" method="POST" style="display:inline;">
+                                <input type="hidden" name="request_id" value="{{ ev[0] }}">
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" style="background: #10b981; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer;"><i class="fa fa-check"></i></button>
+                            </form>
+                            <form action="/admin/event_action" method="POST" style="display:inline;">
+                                <input type="hidden" name="request_id" value="{{ ev[0] }}">
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" style="background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer;"><i class="fa fa-xmark"></i></button>
+                            </form>
+                        {% else %}
+                            <span style="color: #94a3b8; font-size: 12px; margin-right: 10px; padding-top: 5px;">Processed</span>
+                        {% endif %}
+                        
+                        <form action="/admin/delete_event/{{ ev[0] }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to permanently delete this event?');">
+                            <button type="submit" style="background: #475569; color: white; border: none; padding: 6px 10px; border-radius: 5px; cursor: pointer;"><i class="fa fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" style="padding: 20px; text-align: center; color: #94a3b8;">No events submitted yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
 </div>
