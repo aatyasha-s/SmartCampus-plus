@@ -14,10 +14,18 @@
         .search-container input { width: 100%; padding: 15px 15px 15px 45px; border-radius: 30px; border: 2px solid #334155; background: #0f172a; color: white; font-size: 16px; box-sizing: border-box; transition: 0.3s; }
         .search-container input:focus { border-color: #38bdf8; outline: none; }
         .search-container i { position: absolute; left: 18px; top: 18px; color: #94a3b8; font-size: 18px; }
-        .seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px; margin-top: 20px; }
-        .seat-box { background: #1e293b; padding: 15px 5px; text-align: center; border-radius: 8px; font-weight: bold; border-top: 4px solid #334155; cursor: pointer; transition: 0.2s;}
+        
+        /* UPDATED LIBRARY BLUEPRINT STYLES */
+        .seat-blueprint { background: #0f172a; padding: 40px; border-radius: 15px; border: 1px solid #334155; margin-top: 20px; display: flex; flex-direction: column; align-items: center; }
+        .blueprint-layout-wrapper { display: flex; align-items: center; gap: 30px; margin-bottom: 20px; }
+        .window-marker { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #38bdf8; font-weight: bold; font-size: 12px; letter-spacing: 2px; }
+        .window-line { width: 4px; height: 180px; background: #38bdf8; border-radius: 10px; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+        .vertical-text { writing-mode: vertical-rl; text-orientation: upright; }
+        .seat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 12px; justify-content: center; width: 450px; }
+        .seat-box { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #1e293b; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; border: 2px solid transparent; position: relative; }
         .seat-box.Available { border-color: #10b981; color: #10b981; }
-        .seat-box.Occupied { border-color: #ef4444; color: #ef4444; opacity: 0.5; }
+        .seat-box.Sold { border-color: #475569; color: #475569; cursor: not-allowed; opacity: 0.6; }
+        .seat-box.Selected { background: #10b981; color: #0f172a; border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
         
         .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
         .cal-btn { background: #334155; border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
@@ -33,20 +41,7 @@
         .user-nav { display: flex; align-items: center; gap: 15px; position: relative; }
         .user-avatar { width: 35px; height: 35px; border-radius: 50%; background: #334155; display: flex; justify-content: center; align-items: center; border: 2px solid #38bdf8; color: white; font-weight: bold;}
         
-        /* DROPDOWN UPDATED Logic */
-        .dropdown-menu { 
-            display: none; 
-            position: absolute; 
-            top: 50px; 
-            right: 0; 
-            background: #1e293b; 
-            border: 1px solid #334155; 
-            border-radius: 8px; 
-            width: 200px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
-            z-index: 10001; 
-            overflow: hidden;
-        }
+        .dropdown-menu { display: none; position: absolute; top: 50px; right: 0; background: #1e293b; border: 1px solid #334155; border-radius: 8px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 10001; overflow: hidden; }
         .dropdown-menu.show { display: block; }
         .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; transition: 0.2s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-size: 14px;}
         .dropdown-item:hover { background: #334155; color: white; }
@@ -209,7 +204,96 @@
         </table>
     </div>
 
-    <div id="library" class="tab-content"><h2>Library Desk Availability</h2><div class="seat-grid">{% for seat in seats %}<div class="seat-box {{ seat[2] }}"><i class="fa fa-laptop" style="margin-bottom: 5px; font-size: 20px;"></i><br>{{ seat[1] }}</div>{% endfor %}</div></div>
+    <div id="library" class="tab-content">
+        <h2>Library Seat Booking</h2>
+        <p style="color: #94a3b8;">Select a location and time to reserve your workspace.</p>
+
+        {% if my_library_booking %}
+        {% set lib_status = my_library_booking[5] %}
+        {% set lib_color = '#10b981' if lib_status == 'Approved' else '#f59e0b' %}
+        <div style="background: #1e293b; padding: 20px; border-radius: 10px; margin-bottom: 25px; border-left: 5px solid {{ lib_color }}; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="margin: 0 0 5px 0; color: {{ lib_color }};">Active Library Reservation ({{ lib_status }})</h3>
+                <p style="margin: 0; color: white; font-size: 18px;"><strong>{{ my_library_booking[1] }} - Seat {{ my_library_booking[2] }}</strong></p>
+                <p style="margin: 5px 0 0 0; color: #94a3b8; font-size: 14px;"><i class="fa fa-calendar-day"></i> {{ my_library_booking[3] }} &nbsp; | &nbsp; <i class="fa fa-clock"></i> {{ my_library_booking[4] }}</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="completeLibBooking({{ my_library_booking[0] }})" style="background: #3b82f6; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;"><i class="fa fa-check-circle"></i> Mark as Done</button>
+                <button onclick="cancelLibBooking({{ my_library_booking[0] }})" style="background: #ef4444; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;"><i class="fa fa-trash"></i> Cancel</button>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="background: #1e293b; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 15px; align-items: flex-end;">
+                <div>
+                    <label style="color: #cbd5e1; font-size: 12px; font-weight: bold;">Choose Location:</label>
+                    <select id="libLocation" onchange="resetBlueprint()" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
+                        <option value="A block library">A Block Library</option>
+                        <option value="Hatchery">Hatchery</option>
+                        <option value="LRC">LRC</option>
+                        <option value="Law library">Law Library</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="color: #cbd5e1; font-size: 12px; font-weight: bold;">Select Date:</label>
+                    <input type="date" id="libDate" onchange="resetBlueprint()" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; color-scheme: dark;">
+                </div>
+                <div>
+                    <label style="color: #cbd5e1; font-size: 12px; font-weight: bold;">Time Slot:</label>
+                    <select id="libTime" onchange="resetBlueprint()" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
+                        <option value="09:00 AM - 11:00 AM">09-11 AM</option>
+                        <option value="11:00 AM - 01:00 PM">11-01 PM</option>
+                        <option value="01:00 PM - 03:00 PM">01-03 PM</option>
+                        <option value="03:00 PM - 05:00 PM">03-05 PM</option>
+                        <option value="05:00 PM - 07:00 PM">05-07 PM</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="checkLibrarySeats()" style="width: 100%; margin-top: 20px; padding: 12px; background: #38bdf8; color: black; font-weight: bold; border: none; border-radius: 8px; cursor: pointer;"><i class="fa fa-eye"></i> View Blueprint</button>
+        </div>
+
+        <div id="lib-blueprint-container" style="display: none;">
+            <div class="seat-blueprint">
+                <div class="blueprint-layout-wrapper">
+                    <div class="window-marker">
+                        <span class="vertical-text">WINDOW</span>
+                        <div class="window-line"></div>
+                    </div>
+
+                    <div id="seat-grid" class="seat-grid"></div>
+
+                    <div class="window-marker">
+                        <div class="window-line"></div>
+                        <span class="vertical-text">WINDOW</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 10px; display: flex; justify-content: center; gap: 30px; font-size: 13px;">
+                    <span><i class="fa fa-square" style="color: #10b981;"></i> Available</span>
+                    <span><i class="fa fa-square" style="color: #475569;"></i> Unavailable</span>
+                </div>
+
+                <button id="bookSeatBtn" onclick="submitSeatBooking()" disabled style="margin-top: 30px; padding: 15px 50px; background: #10b981; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">Request Selected Seat</button>
+            </div>
+        </div>
+
+        <hr style="border-color: #334155; margin: 40px 0;">
+        <h3><i class="fa fa-clock-rotate-left"></i> My Library History</h3>
+        <table style="width:100%; border-collapse: collapse; background: #1e293b; border-radius: 10px; overflow: hidden; font-size: 14px; margin-bottom: 30px;">
+            <thead style="background: #334155;"><tr><th style="padding: 12px; text-align: left;">Location</th><th style="padding: 12px; text-align: left;">Seat</th><th style="padding: 12px; text-align: left;">Date & Slot</th><th style="padding: 12px; text-align: left;">Status</th></tr></thead>
+            <tbody>
+                {% for past in past_library_bookings %}
+                <tr style="border-bottom: 1px solid #334155;">
+                    <td style="padding: 12px; color: white;">{{ past[1] }}</td>
+                    <td style="padding: 12px; color: #38bdf8; font-weight: bold;">#{{ past[2] }}</td>
+                    <td style="padding: 12px;">{{ past[3] }} <br> <span style="font-size: 11px; color: #94a3b8;">{{ past[4] }}</span></td>
+                    <td style="padding: 12px;"><span style="padding: 4px 8px; border-radius: 4px; font-size: 11px; background: {{ '#ef4444' if past[5] == 'Rejected' else '#475569' }}; color: white;">{{ past[5] }}</span></td>
+                </tr>
+                {% else %}<tr><td colspan="4" style="padding: 12px; text-align: center; color: #94a3b8;">No past seat reservations.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
     
     <div id="events" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -329,8 +413,18 @@
     function closeCustomModal() { document.getElementById("customModal").style.display = "none"; }
     function confirmCustomization() { let finalName = currentItem.name; let finalPrice = currentItem.price; if (currentItem.half_price > 0) { if (document.getElementById("c-half-radio").checked) { finalName += " (Half)"; finalPrice = parseInt(document.getElementById("c-half-radio").value); } else { finalName += " (Full)"; } } let sel = []; document.querySelectorAll(".c-addon-cb:checked").forEach(cb => { sel.push(cb.value); }); if (sel.length > 0) finalName += " [" + sel.join(", ") + "]"; addToCart(finalName, finalPrice, currentVendor); closeCustomModal(); }
     function backToVendors() { document.getElementById('menu-view').style.display = 'none'; document.getElementById('vendor-view').style.display = 'block'; }
-    function showTab(id, btn) { document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active")); document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active")); document.getElementById(id).classList.add("active"); btn.classList.add("active"); let cartBtn = document.querySelector('.cart-floating'); if (cartBtn) { cartBtn.style.display = (id === 'food') ? 'flex' : 'none'; } }
+    function showTab(id, btn) {
+        document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+        btn.classList.add("active");
 
+        // NEW LOGIC: Show cart only on food tab, hide on others
+        let cartBtn = document.querySelector('.cart-floating');
+        if (cartBtn) {
+            cartBtn.style.display = (id === 'food') ? 'flex' : 'none';
+        }
+    }
     // ROOMS
     let currentRoomsData = []; let currentFilterType = 'All';
     function checkRooms() { let date = document.getElementById("roomDate").value; let time = document.getElementById("roomTime").value; if(!date || !time) { alert("Please select both date and time!"); return; } fetch(`/api/rooms/check?date=${date}&time=${time}`).then(r => r.json()).then(data => { currentRoomsData = data; document.getElementById("room-filters").style.display = "flex"; renderRooms(); }); }
@@ -339,6 +433,83 @@
     function bookRoom(roomName, date, time) { if(confirm(`Book ${roomName}?`)) { fetch('/api/rooms/book', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ room: roomName, date: date, time: time }) }).then(r => r.json()).then(data => { if (data.status === "error") { alert("🚨 " + data.message); } else { alert("✅ " + data.message); checkRooms(); } }); } }
     function cancelBooking(bookingId) { if(confirm("Cancel?")) { fetch('/api/rooms/cancel', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: bookingId }) }).then(r => r.json()).then(data => { if (data.status === "error") { alert("🚨 " + data.message); } else { alert("✅ " + data.message); window.location.reload(); } }); } }
     function completeBooking(bookingId) { if(confirm("Done?")) { fetch('/api/rooms/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: bookingId }) }).then(r => r.json()).then(data => { if (data.status === "success") { alert("✅ " + data.message); window.location.reload(); } }); } }
+
+    // NEW: LIBRARY JS LOGIC
+    let selectedSeat = null;
+    function resetBlueprint() {
+        document.getElementById('lib-blueprint-container').style.display = 'none';
+        selectedSeat = null;
+        document.getElementById('bookSeatBtn').disabled = true;
+    }
+
+    function checkLibrarySeats() {
+        let loc = document.getElementById("libLocation").value;
+        let date = document.getElementById("libDate").value;
+        let time = document.getElementById("libTime").value;
+        if(!date) { alert("Please pick a date!"); return; }
+        fetch(`/api/library/check?location=${encodeURIComponent(loc)}&date=${date}&time=${time}`)
+            .then(r => r.json())
+            .then(data => {
+                let grid = document.getElementById("seat-grid");
+                grid.innerHTML = "";
+                data.forEach(seat => {
+                    grid.innerHTML += `<div class="seat-box ${seat.status}" onclick="selectSeat('${seat.seat_no}', '${seat.status}', this)">${seat.seat_no}</div>`;
+                });
+                document.getElementById('lib-blueprint-container').style.display = 'block';
+            });
+    }
+
+    function selectSeat(seatNo, status, el) {
+        if(status === 'Sold') return;
+        document.querySelectorAll('.seat-grid .seat-box').forEach(s => s.classList.remove('Selected'));
+        selectedSeat = seatNo;
+        el.classList.add('Selected');
+        document.getElementById('bookSeatBtn').disabled = false;
+        document.getElementById('bookSeatBtn').innerText = `Request Seat #${seatNo}`;
+    }
+
+    function submitSeatBooking() {
+        if(!selectedSeat) return;
+        let data = {
+            location: document.getElementById("libLocation").value,
+            date: document.getElementById("libDate").value,
+            time: document.getElementById("libTime").value,
+            seat: selectedSeat
+        };
+        fetch('/api/library/book', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        }).then(r => r.json()).then(res => {
+            if(res.status === "error") { alert("🚨 " + res.message); } 
+            else { alert("✅ " + res.message); window.location.reload(); }
+        });
+    }
+
+    function cancelLibBooking(bookingId) {
+        if(confirm("Are you sure you want to cancel this library reservation?")) {
+            fetch('/api/library/cancel', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: bookingId })
+            }).then(r => r.json()).then(data => {
+                if (data.status === "error") { alert("🚨 " + data.message); } 
+                else { alert("✅ " + data.message); window.location.reload(); }
+            });
+        }
+    }
+
+    function completeLibBooking(bookingId) {
+        if(confirm("Finished using the seat?")) {
+            fetch('/api/library/complete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: bookingId })
+            }).then(r => r.json()).then(data => {
+                if (data.status === "success") { alert("✅ " + data.message); window.location.reload(); }
+            });
+        }
+    }
 
     // EVENTS
     const eventDates = [{% for e in events %}'{{ e[3] }}',{% endfor %}]; 
@@ -357,7 +528,11 @@
         }
     }
     function changeMonth(dir) { currentDate.setMonth(currentDate.getMonth() + dir); renderCalendar(); }
-    window.onload = function() { renderCalendar(); document.getElementById('ev-date').min = new Date().toISOString().split('T')[0]; };
+    window.onload = function() { 
+        renderCalendar(); 
+        document.getElementById('ev-date').min = new Date().toISOString().split('T')[0];
+        document.getElementById('libDate').min = new Date().toISOString().split('T')[0];
+    };
     function openEventModal() { document.getElementById('eventModal').style.display = 'flex'; }
     function closeEventModal() { document.getElementById('eventModal').style.display = 'none'; }
     function submitEvent() {
