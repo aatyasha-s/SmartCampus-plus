@@ -19,7 +19,6 @@
         .seat-box.Available { border-color: #10b981; color: #10b981; }
         .seat-box.Occupied { border-color: #ef4444; color: #ef4444; opacity: 0.5; }
         
-        /* Calendar Styles */
         .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
         .cal-btn { background: #334155; border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
         .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: #94a3b8; margin-bottom: 5px; }
@@ -29,24 +28,74 @@
         .cal-cell.empty { background: transparent; cursor: default; pointer-events: none; }
         .cal-cell.has-event { background: #1e3a8a; color: #38bdf8; font-weight: bold; border: 1px solid #38bdf8; }
         .cal-cell.active { background: #38bdf8; color: black; font-weight: bold; }
+
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .user-nav { display: flex; align-items: center; gap: 15px; position: relative; }
+        .user-avatar { width: 35px; height: 35px; border-radius: 50%; background: #334155; display: flex; justify-content: center; align-items: center; border: 2px solid #38bdf8; color: white; font-weight: bold;}
+        
+        /* DROPDOWN UPDATED Logic */
+        .dropdown-menu { 
+            display: none; 
+            position: absolute; 
+            top: 50px; 
+            right: 0; 
+            background: #1e293b; 
+            border: 1px solid #334155; 
+            border-radius: 8px; 
+            width: 200px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+            z-index: 10001; 
+            overflow: hidden;
+        }
+        .dropdown-menu.show { display: block; }
+        .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 15px; color: #cbd5e1; text-decoration: none; transition: 0.2s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-size: 14px;}
+        .dropdown-item:hover { background: #334155; color: white; }
+        .dropdown-item i { width: 16px; text-align: center; }
+        .dropdown-item.logout { color: #ef4444; border-top: 1px solid #334155; }
+        .dropdown-item.logout:hover { background: rgba(239, 68, 68, 0.1); }
+
+        .main-footer { background: #0f172a; padding: 40px 10%; border-top: 2px solid #334155; color: #94a3b8; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 30px; margin-top: auto;}
+        .footer-logo-section { display: flex; flex-direction: column; gap: 10px; }
+        .footer-section-title { color: #cbd5e1; font-weight: bold; margin-bottom: 15px; display: block; }
+        .footer-links { display: flex; flex-direction: column; gap: 8px; list-style: none; padding: 0; margin: 0; }
+        .footer-links a { color: #94a3b8; text-decoration: none; font-size: 14px; }
+        .footer-links a:hover { color: white; }
+        .footer-bottom { background: #010101; padding: 15px; text-align: center; color: #475569; font-size: 12px; border-top: 1px solid #334155; }
+        
+        body { display: flex; flex-direction: column; min-height: 100vh; margin: 0;}
+        .tab-container { flex: 1; margin-bottom: 40px;}
     </style>
 </head>
-<body>
+<body onclick="closeDropdowns(event)">
 
-<header class="main-header">
-    <h2><i class="fa-solid fa-graduation-cap"></i> SmartCampus+</h2>
-    <div>Welcome {{user}} | <a href="/logout" class="logout-btn">Logout</a></div>
+<header class="main-header" style="justify-content: space-between; position: relative;">
+    <div class="header-left">
+        <i class="fa-solid fa-graduation-cap fa-2x" style="color: #38bdf8;"></i>
+        <h2 style="margin:0;">SmartCampus+</h2>
+    </div>
+    
+    <div class="tabs" style="border:none; padding: 0; background: none;">
+        <button class="tab-btn active" onclick="showTab('food', this)">🍔 Food</button>
+        <button class="tab-btn" onclick="showTab('rooms', this)">🏫 Classrooms</button>
+        <button class="tab-btn" onclick="showTab('library', this)">📚 Library</button>
+        <button class="tab-btn" onclick="showTab('events', this)">📅 Events</button>
+    </div>
+
+    <div class="user-nav" onclick="toggleUserDropdown(event)">
+        <span style="font-size: 14px; color: #cbd5e1; cursor: pointer;">Welcome, {{user}}</span>
+        <div class="user-avatar" style="cursor: pointer;">{{ user[0].upper() }}</div>
+        <i class="fa fa-chevron-down" style="font-size: 12px; color: #94a3b8; cursor: pointer;"></i>
+        
+        <div id="userDropdown" class="dropdown-menu">
+            <div class="dropdown-item"><i class="fa fa-user"></i> My Profile (TBA)</div>
+            <div class="dropdown-item"><i class="fa fa-calendar-days"></i> My Calendar (TBA)</div>
+            <div class="dropdown-item"><i class="fa fa-bell"></i> Notifications (TBA)</div>
+            <a href="/logout" class="dropdown-item logout"><i class="fa fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </div>
 </header>
 
-<div class="tabs">
-    <button class="tab-btn active" onclick="showTab('food', this)">🍔 Food & Orders</button>
-    <button class="tab-btn" onclick="showTab('rooms', this)">🏫 Rooms</button>
-    <button class="tab-btn" onclick="showTab('library', this)">📚 Library</button>
-    <button class="tab-btn" onclick="showTab('events', this)">📅 Events</button>
-</div>
-
 <div class="tab-container">
-    
     <div id="food" class="tab-content active">
         <div class="search-container"><i class="fa fa-search"></i><input type="text" id="globalSearch" placeholder="Craving something? Search here..." onkeyup="handleSearch(this.value)"></div>
         <div id="search-view" style="display: none;">
@@ -163,156 +212,100 @@
     <div id="library" class="tab-content"><h2>Library Desk Availability</h2><div class="seat-grid">{% for seat in seats %}<div class="seat-box {{ seat[2] }}"><i class="fa fa-laptop" style="margin-bottom: 5px; font-size: 20px;"></i><br>{{ seat[1] }}</div>{% endfor %}</div></div>
     
     <div id="events" class="tab-content">
-        
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="margin: 0;"><i class="fa fa-calendar-days"></i> Campus Billboard</h2>
             <button onclick="openEventModal()" style="background: #38bdf8; color: black; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;"><i class="fa fa-plus"></i> Propose an Event</button>
         </div>
-
         <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-            
             <div style="flex: 1; min-width: 300px; background: #1e293b; padding: 20px; border-radius: 10px;">
-                <div class="cal-header">
-                    <button class="cal-btn" onclick="changeMonth(-1)">❮</button>
-                    <span id="cal-month-year" style="color: #38bdf8; font-size: 18px;"></span>
-                    <button class="cal-btn" onclick="changeMonth(1)">❯</button>
-                </div>
-                <div class="cal-days">
-                    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
-                </div>
+                <div class="cal-header"><button class="cal-btn" onclick="changeMonth(-1)">❮</button><span id="cal-month-year" style="color: #38bdf8; font-size: 18px;"></span><button class="cal-btn" onclick="changeMonth(1)">❯</button></div>
+                <div class="cal-days"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
                 <div id="cal-grid" class="cal-grid"></div>
             </div>
-
             <div style="flex: 2; min-width: 350px;">
-                <div id="event-filters" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <button onclick="filterEvents('All', this)" class="filter-btn event-filter active-filter" style="background: #38bdf8; color: black; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;">All Events</button>
-                    <button onclick="filterEvents('Tech & Hackathons', this)" class="filter-btn event-filter" style="background: #1e293b; color: white; border: 1px solid #334155; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;">💻 Tech</button>
-                    <button onclick="filterEvents('Entertainment', this)" class="filter-btn event-filter" style="background: #1e293b; color: white; border: 1px solid #334155; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;">🎬 Entertainment</button>
-                    <button onclick="filterEvents('Food & Bazaars', this)" class="filter-btn event-filter" style="background: #1e293b; color: white; border: 1px solid #334155; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;">🍔 Food</button>
-                    <button onclick="filterEvents('Career & Expos', this)" class="filter-btn event-filter" style="background: #1e293b; color: white; border: 1px solid #334155; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold;">👔 Career</button>
-                </div>
-
                 <div id="events-feed" style="display: flex; flex-direction: column; gap: 15px; max-height: 500px; overflow-y: auto; padding-right: 10px;">
                     {% for event in events %}
-                    <div class="event-card" data-category="{{ event[6] }}" data-date="{{ event[3] }}" style="background: #1e293b; padding: 20px; border-radius: 8px; border-left: 5px solid #f59e0b; display: flex; align-items: flex-start; gap: 20px;">
-                        <div style="background: #0f172a; padding: 15px; border-radius: 8px; text-align: center; min-width: 80px;">
-                            <i class="fa fa-calendar-day fa-2x" style="color: #f59e0b; margin-bottom: 5px;"></i>
-                            <div style="font-size: 12px; color: #94a3b8; font-weight: bold;">{{ event[3] }}</div>
-                        </div>
+                    <div class="event-card" data-date="{{ event[3] }}" style="background: #1e293b; padding: 20px; border-radius: 8px; border-left: 5px solid #f59e0b; display: flex; align-items: flex-start; gap: 20px;">
+                        <div style="background: #0f172a; padding: 15px; border-radius: 8px; text-align: center; min-width: 80px;"><i class="fa fa-calendar-day fa-2x" style="color: #f59e0b; margin-bottom: 5px;"></i><div style="font-size: 12px; color: #94a3b8; font-weight: bold;">{{ event[3] }}</div></div>
                         <div style="flex: 1;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <h3 style="margin: 0 0 5px 0; color: white; font-size: 20px;">{{ event[1] }}</h3>
-                                <span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 4px 8px; border-radius: 12px; font-weight: bold;">{{ event[6] }}</span>
-                            </div>
-                            <p style="font-size: 12px; color: #94a3b8; margin: 0 0 10px 0;">
-                                <i class="fa fa-clock"></i> {{ event[4] }} &nbsp;|&nbsp; <i class="fa fa-location-dot"></i> {{ event[5] }} &nbsp;|&nbsp; <i class="fa fa-users"></i> By: {{ event[7] }}
-                            </p>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;"><h3 style="margin: 0 0 5px 0; color: white; font-size: 20px;">{{ event[1] }}</h3><span style="background: #334155; color: #38bdf8; font-size: 11px; padding: 4px 8px; border-radius: 12px; font-weight: bold;">{{ event[6] }}</span></div>
+                            <p style="font-size: 12px; color: #94a3b8; margin: 0 0 10px 0;"><i class="fa fa-clock"></i> {{ event[4] }} &nbsp;|&nbsp; <i class="fa fa-location-dot"></i> {{ event[5] }} &nbsp;|&nbsp; <i class="fa fa-users"></i> By: {{ event[7] }}</p>
                             <p style="margin: 0 0 15px 0; color: #cbd5e1; line-height: 1.5;">{{ event[2] }}</p>
-                            
-                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                {% if event[0] in my_rsvps %}
-                                    <button disabled style="background: #047857; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: not-allowed; font-weight: bold;"><i class="fa fa-check"></i> RSVP'd</button>
-                                {% else %}
-                                    <button onclick="rsvpEvent({{ event[0] }}, this)" style="background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;"><i class="fa fa-hand-sparkles"></i> I'm Going!</button>
-                                {% endif %}
+                            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                                {% if event[0] in my_rsvps %}<button disabled style="background: #047857; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: not-allowed; font-weight: bold;"><i class="fa fa-check"></i> RSVP'd</button>
+                                {% else %}<button onclick="rsvpEvent({{ event[0] }}, this)" style="background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;"><i class="fa fa-hand-sparkles"></i> I'm Going!</button>{% endif %}
+                                {% if event[10] %}<a href="{{ event[10] }}" target="_blank" style="background: #0284c7; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; font-size: 14px;"><i class="fa fa-link"></i> External Registration</a>{% endif %}
                                 <span style="color: #94a3b8; font-size: 13px;">🔥 <strong class="rsvp-count" style="color: #f59e0b;">{{ event[8] }}</strong> attending</span>
-                                
-                                {% if event[9] == user %}
-                                    <button onclick="openEditEventModal(this)" data-id="{{ event[0] }}" data-title="{{ event[1] }}" data-desc="{{ event[2] }}" data-date="{{ event[3] }}" data-time="{{ event[4] }}" data-loc="{{ event[5] }}" data-cat="{{ event[6] }}" data-org="{{ event[7] }}" style="background: transparent; color: #38bdf8; border: 1px solid #38bdf8; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-left: auto;"><i class="fa fa-pen"></i> Edit</button>
-                                {% endif %}
+                                {% if event[9] == user %}<button onclick="ownerAction({{ event[0] }}, 'completed')" style="background: #f59e0b; color: black; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-left: auto;"><i class="fa fa-check-circle"></i> Mark as Completed</button>{% endif %}
                             </div>
                         </div>
                     </div>
-                    {% else %}
-                    <p id="no-events-msg" style="color: #94a3b8; padding: 20px; text-align: center;">No events to show right now.</p>
-                    {% endfor %}
+                    {% else %}<p id="no-events-msg" style="color: #94a3b8; padding: 20px; text-align: center;">No upcoming events.</p>{% endfor %}
                 </div>
             </div>
         </div>
-
         <hr style="border-color: #334155; margin: 40px 0;">
-        <h3><i class="fa fa-clock-rotate-left"></i> My Past RSVP'd Events</h3>
+        <h3><i class="fa fa-clock-rotate-left"></i> My Past & Attended Events</h3>
         <table style="width:100%; border-collapse: collapse; background: #1e293b; border-radius: 10px; overflow: hidden; font-size: 14px; margin-bottom: 30px;">
-            <thead style="background: #334155;">
-                <tr>
-                    <th style="padding: 12px; text-align: left;">Event Title</th>
-                    <th style="padding: 12px; text-align: left;">Date & Time</th>
-                    <th style="padding: 12px; text-align: left;">Club / Organizer</th>
-                </tr>
-            </thead>
+            <thead style="background: #334155;"><tr><th style="padding: 12px; text-align: left;">Event Title</th><th style="padding: 12px; text-align: left;">Date & Time</th><th style="padding: 12px; text-align: left;">Club / Organizer</th></tr></thead>
             <tbody>
                 {% for past in past_rsvps %}
-                <tr style="border-bottom: 1px solid #334155;">
-                    <td style="padding: 12px; color: #38bdf8; font-weight: bold;">{{ past[1] }}</td>
-                    <td style="padding: 12px;">{{ past[2] }} <br> <span style="font-size: 12px; color: #94a3b8;">{{ past[3] }}</span></td>
-                    <td style="padding: 12px; color: #cbd5e1;">{{ past[6] }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="3" style="padding: 12px; text-align: center; color: #94a3b8;">No past events.</td></tr>
-                {% endfor %}
+                <tr style="border-bottom: 1px solid #334155;"><td style="padding: 12px; color: #38bdf8; font-weight: bold;">{{ past[1] }}</td><td style="padding: 12px;">{{ past[2] }} <br> <span style="font-size: 12px; color: #94a3b8;">{{ past[3] }}</span></td><td style="padding: 12px; color: #cbd5e1;">{{ past[6] }}</td></tr>
+                {% else %}<tr><td colspan="3" style="padding: 12px; text-align: center; color: #94a3b8;">No past events found.</td></tr>{% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
-<div id="customModal" class="custom-modal"><div class="custom-box"><div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 10px;"><h3 id="c-title" style="margin: 0; color: #38bdf8;">Item</h3><i class="fa fa-xmark" style="cursor: pointer; font-size: 20px;" onclick="closeCustomModal()"></i></div><div id="c-size-section" class="custom-section" style="display: none;"><h4 style="margin-top: 0; margin-bottom: 10px;">Select Size</h4><label class="custom-option"><span id="c-half-text">Half</span> <input type="radio" name="c_size" id="c-half-radio" value="Half"></label><label class="custom-option"><span id="c-full-text">Full</span> <input type="radio" name="c_size" id="c-full-radio" value="Full" checked></label></div><div id="c-addon-section" class="custom-section" style="display: none;"><h4 style="margin-top: 0; margin-bottom: 10px;">Preferences</h4><div id="c-addon-list"></div></div><button onclick="confirmCustomization()" style="width: 100%; margin-top: 20px; background: #10b981; color: white; padding: 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer;">Add to Cart</button></div></div>
+<footer class="main-footer">
+    <div class="footer-logo-section"><i class="fa-solid fa-graduation-cap fa-3x" style="color: #cbd5e1;"></i><h3 style="margin: 10px 0; color: white;">SmartCampus+</h3><p style="font-size: 13px; max-width: 250px;">Your central hub for campus life—food, classrooms, library, and events, made simple.</p></div>
+    <div><span class="footer-section-title">Address</span><p style="font-size: 14px; line-height: 1.6;">Plot Nos 8-11, TechZone II, <br>Greater Noida 201310, <br>Uttar Pradesh, India</p></div>
+    <div><span class="footer-section-title">Connect Us</span><ul class="footer-links"><li><i class="fa fa-envelope" style="color:#38bdf8"></i> <a href="mailto:S24CSEU1034@bennett.edu.in">S24CSEU1034@bennett.edu.in</a></li><li><i class="fa fa-phone" style="color:#38bdf8"></i> <a href="tel:+919355227890">+91 9355227890</a></li></ul></div>
+</footer>
+<div class="footer-bottom">&copy; 2026 SmartCampus+ | All Rights Reserved</div>
 
 <div id="eventModal" class="custom-modal">
     <div class="custom-box" style="max-width: 500px;">
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 15px;">
-            <h3 id="ev-modal-title" style="margin: 0; color: #38bdf8;"><i class="fa fa-bullhorn"></i> Submit an Event</h3>
-            <i class="fa fa-xmark" style="cursor: pointer; font-size: 20px; color: #94a3b8;" onclick="closeEventModal()"></i>
-        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 15px;"><h3 style="margin: 0; color: #38bdf8;"><i class="fa fa-bullhorn"></i> Submit an Event</h3><i class="fa fa-xmark" style="cursor: pointer; font-size: 20px; color: #94a3b8;" onclick="closeEventModal()"></i></div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            <input type="hidden" id="ev-edit-id" value="">
-            
             <input type="text" id="ev-title" placeholder="Event Title" required style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
-            <input type="text" id="ev-org" placeholder="Club Name / Organizer (e.g. Computer Society)" required style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
+            <input type="text" id="ev-org" placeholder="Club Name / Organizer" required style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
             <textarea id="ev-desc" placeholder="What's happening?" rows="3" required style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; resize: none;"></textarea>
-            
             <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;">
-                    <label style="color: #94a3b8; font-size: 12px; margin-bottom: 2px; display: block;">Date</label>
-                    <input type="date" id="ev-date" required style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; color-scheme: dark;">
-                </div>
-                <div style="flex: 1;">
-                    <label style="color: #94a3b8; font-size: 12px; margin-bottom: 2px; display: block;">Time (12-Hour)</label>
-                    <div style="display: flex; gap: 5px;">
-                        <select id="ev-hour" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; flex: 1;">
-                            <option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
-                        </select>
-                        <select id="ev-minute" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; flex: 1;">
-                            <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
-                        </select>
-                        <select id="ev-ampm" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; flex: 1;">
-                            <option value="AM">AM</option><option value="PM">PM</option>
-                        </select>
-                    </div>
-                </div>
+                <div style="flex: 1;"><label style="color: #94a3b8; font-size: 12px; margin-bottom: 2px; display: block;">Date</label><input type="date" id="ev-date" required style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; color-scheme: dark;"></div>
+                <div style="flex: 1;"><label style="color: #94a3b8; font-size: 12px; margin-bottom: 2px; display: block;">Time</label><div style="display: flex; gap: 5px;">
+                    <select id="ev-hour" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; flex: 1;"><option value="01">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option></select>
+                    <select id="ev-minute" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; flex: 1;"><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option></select>
+                    <select id="ev-ampm" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155; flex: 1;"><option value="AM">AM</option><option value="PM">PM</option></select>
+                </div></div>
             </div>
-            
-            <input type="text" id="ev-loc" placeholder="Location (e.g. Main Ground)" required style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
-            
-            <select id="ev-cat" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
-                <option value="General">General</option>
-                <option value="Tech & Hackathons">Tech & Hackathons</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Food & Bazaars">Food & Bazaars</option>
-                <option value="Career & Expos">Career & Expos</option>
-            </select>
-            
-            <button id="ev-submit-btn" onclick="submitEvent()" style="margin-top: 10px; background: #38bdf8; color: black; padding: 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer;">Submit for Approval</button>
+            <input type="text" id="ev-loc" placeholder="Location" required style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
+            <select id="ev-cat" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;"><option value="General">General</option><option value="Tech & Hackathons">Tech & Hackathons</option><option value="Entertainment">Entertainment</option><option value="Food & Bazaars">Food & Bazaars</option><option value="Career & Expos">Career & Expos</option></select>
+            <input type="url" id="ev-link" placeholder="External Registration Link (Optional)" style="padding: 10px; border-radius: 5px; background: #0f172a; color: white; border: 1px solid #334155;">
+            <button onclick="submitEvent()" style="margin-top: 10px; background: #38bdf8; color: black; padding: 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer;">Submit for Approval</button>
         </div>
     </div>
 </div>
+
+<div id="customModal" class="custom-modal"><div class="custom-box"><div style="display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding-bottom: 10px;"><h3 id="c-title" style="margin: 0; color: #38bdf8;">Item</h3><i class="fa fa-xmark" style="cursor: pointer; font-size: 20px;" onclick="closeCustomModal()"></i></div><div id="c-size-section" class="custom-section" style="display: none;"><h4 style="margin-top: 0; margin-bottom: 10px;">Select Size</h4><label class="custom-option"><span id="c-half-text">Half</span> <input type="radio" name="c_size" id="c-half-radio" value="Half"></label><label class="custom-option"><span id="c-full-text">Full</span> <input type="radio" name="c_size" id="c-full-radio" value="Full" checked></label></div><div id="c-addon-section" class="custom-section" style="display: none;"><h4 style="margin-top: 0; margin-bottom: 10px;">Preferences</h4><div id="c-addon-list"></div></div><button onclick="confirmCustomization()" style="width: 100%; margin-top: 20px; background: #10b981; color: white; padding: 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer;">Add to Cart</button></div></div>
 
 {% include 'cart.html' %}
 <div id="toast" class="toast">Added to cart</div>
 
 <script src="/static/script.js"></script>
 <script>
+    // DROPDOWN Logic
+    function toggleUserDropdown(e) {
+        e.stopPropagation();
+        document.getElementById('userDropdown').classList.toggle('show');
+    }
+    function closeDropdowns(e) {
+        if (!e.target.closest('.user-nav')) {
+            document.getElementById('userDropdown').classList.remove('show');
+        }
+    }
+
     let currentItem = null; let currentVendor = "";
-    
     function handleSearch(query) {
         if(query.length === 0){ clearSearch(); return; } if(query.length < 2) return;
         document.getElementById('vendor-view').style.display = 'none'; document.getElementById('menu-view').style.display = 'none'; document.getElementById('search-view').style.display = 'block';
@@ -327,7 +320,7 @@
     function clearSearch() { document.getElementById('globalSearch').value = ''; document.getElementById('search-view').style.display = 'none'; document.getElementById('vendor-view').style.display = 'block'; }
     function openMenu(vendorName) { document.getElementById('search-view').style.display = 'none'; document.getElementById('vendor-view').style.display = 'none'; document.getElementById('menu-view').style.display = 'block'; document.getElementById('menu-title').innerText = vendorName + " - Menu"; currentVendor = vendorName; fetch('/get_menu/' + encodeURIComponent(vendorName)).then(res => res.json()).then(data => {
             let html = ''; data.forEach(item => {
-                let btnHtml = item.is_customizable === 'Yes' ? `<button onclick='openCustomModal(${JSON.stringify(item)})' style="background:#f59e0b; color:black; font-weight:bold; margin-top:10px; width:100%; padding:8px; border:none; border-radius:5px; cursor:pointer;">Customize</button>` : `<button onclick="addToCart('${item.name}', ${item.price}, '${vendorName}')" style="margin-top:10px; width:100%; background:#38bdf8; color:black; padding:8px; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">Add</button>`;
+                let btnHtml = item.is_customizable === 'Yes' ? `<button onclick='openCustomModal(${JSON.stringify(item)})' style="background:#f59e0b; color:black; font-weight:bold; margin-top:10px; width:100%; padding:8px; border-radius:5px; border:none; cursor:pointer;">Customize</button>` : `<button onclick="addToCart('${item.name}', ${item.price}, '${vendorName}')" style="margin-top:10px; width:100%; background:#38bdf8; color:black; padding:8px; border-radius:5px; border:none; cursor:pointer; font-weight:bold;">Add</button>`;
                 html += `<div class="food-card" style="display: flex; flex-direction: column; justify-content: space-between;"><div><i class="fa ${item.icon} fa-2x" style="color: #94a3b8;"></i><h3>${item.name} ₹${item.price}</h3></div>${btnHtml}</div>`;
             });
             document.getElementById('dynamic-menu').innerHTML = html || '<p>No items available right now.</p>';
@@ -336,172 +329,44 @@
     function closeCustomModal() { document.getElementById("customModal").style.display = "none"; }
     function confirmCustomization() { let finalName = currentItem.name; let finalPrice = currentItem.price; if (currentItem.half_price > 0) { if (document.getElementById("c-half-radio").checked) { finalName += " (Half)"; finalPrice = parseInt(document.getElementById("c-half-radio").value); } else { finalName += " (Full)"; } } let sel = []; document.querySelectorAll(".c-addon-cb:checked").forEach(cb => { sel.push(cb.value); }); if (sel.length > 0) finalName += " [" + sel.join(", ") + "]"; addToCart(finalName, finalPrice, currentVendor); closeCustomModal(); }
     function backToVendors() { document.getElementById('menu-view').style.display = 'none'; document.getElementById('vendor-view').style.display = 'block'; }
-    function showTab(id, btn) { document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active")); document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active")); document.getElementById(id).classList.add("active"); btn.classList.add("active"); }
+    function showTab(id, btn) { document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active")); document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active")); document.getElementById(id).classList.add("active"); btn.classList.add("active"); let cartBtn = document.querySelector('.cart-floating'); if (cartBtn) { cartBtn.style.display = (id === 'food') ? 'flex' : 'none'; } }
 
-    // ROOMS LOGIC
+    // ROOMS
     let currentRoomsData = []; let currentFilterType = 'All';
-    function checkRooms() { let date = document.getElementById("roomDate").value; let time = document.getElementById("roomTime").value; if(!date || !time) { alert("Please select both date and time!"); return; } document.getElementById("dynamic-rooms-grid").innerHTML = "<p style='color:#38bdf8; grid-column: 1/-1; text-align:center;'>Searching...</p>"; fetch(`/api/rooms/check?date=${date}&time=${time}`).then(r => r.json()).then(data => { currentRoomsData = data; document.getElementById("room-filters").style.display = "flex"; renderRooms(); }); }
+    function checkRooms() { let date = document.getElementById("roomDate").value; let time = document.getElementById("roomTime").value; if(!date || !time) { alert("Please select both date and time!"); return; } fetch(`/api/rooms/check?date=${date}&time=${time}`).then(r => r.json()).then(data => { currentRoomsData = data; document.getElementById("room-filters").style.display = "flex"; renderRooms(); }); }
     function filterRooms(type, btnElement) { currentFilterType = type; document.querySelectorAll('#room-filters .filter-btn').forEach(btn => { btn.style.background = '#1e293b'; btn.style.color = 'white'; btn.style.border = '1px solid #334155'; }); btnElement.style.background = '#38bdf8'; btnElement.style.color = 'black'; btnElement.style.border = 'none'; renderRooms(); }
-    function renderRooms() { let grid = document.getElementById("dynamic-rooms-grid"); grid.innerHTML = ""; let date = document.getElementById("roomDate").value; let time = document.getElementById("roomTime").value; let filteredData = currentRoomsData.filter(room => currentFilterType === 'All' || room.type === currentFilterType); if (filteredData.length === 0) { grid.innerHTML = `<p style="color: #94a3b8; grid-column: 1 / -1; text-align: center; padding: 40px;">No rooms found.</p>`; return; } filteredData.forEach(room => { let color = room.status === 'Available' ? '#10b981' : '#ef4444'; let bgStyle = room.status === 'Available' ? "" : "opacity: 0.5;"; let btn = room.status === 'Available' ? `<button onclick="bookRoom('${room.name}', '${date}', '${time}')" style="margin-top: 10px; width: 100%; padding: 10px; background: #10b981; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">Book Now</button>` : `<button disabled style="margin-top: 10px; width: 100%; padding: 10px; background: #7f1d1d; color: #fca5a5; font-weight: bold; border: none; border-radius: 5px; cursor: not-allowed;">Already Booked</button>`; grid.innerHTML += `<div class="food-card" style="border-top: 4px solid ${color}; ${bgStyle} text-align: center;"><i class="fa fa-door-open fa-2x" style="color: ${color}; margin-bottom: 10px;"></i><h3 style="margin: 0;">${room.name}</h3><p style="font-size: 11px; color: #94a3b8; margin: 5px 0 10px 0;">${room.type}</p><p style="color: ${color}; font-weight: bold; font-size: 14px;">${room.status}</p>${btn}</div>`; }); }
-    function bookRoom(roomName, date, time) { if(confirm(`Are you sure you want to book ${roomName}?`)) { fetch('/api/rooms/book', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ room: roomName, date: date, time: time }) }).then(r => r.json()).then(data => { if (data.status === "error") { alert("🚨 " + data.message); } else { alert("✅ " + data.message); checkRooms(); } }); } }
-    function cancelBooking(bookingId) { if(confirm("Cancel reservation?")) { fetch('/api/rooms/cancel', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: bookingId }) }).then(r => r.json()).then(data => { if (data.status === "error") { alert("🚨 " + data.message); } else { alert("✅ " + data.message); window.location.reload(); } }); } }
-    function completeBooking(bookingId) { if(confirm("Mark as done?")) { fetch('/api/rooms/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: bookingId }) }).then(r => r.json()).then(data => { if (data.status === "success") { alert("✅ " + data.message); window.location.reload(); } }); } }
+    function renderRooms() { let grid = document.getElementById("dynamic-rooms-grid"); grid.innerHTML = ""; let date = document.getElementById("roomDate").value; let time = document.getElementById("roomTime").value; let filteredData = currentRoomsData.filter(room => currentFilterType === 'All' || room.type === currentFilterType); filteredData.forEach(room => { let color = room.status === 'Available' ? '#10b981' : '#ef4444'; let bgStyle = room.status === 'Available' ? "" : "opacity: 0.5;"; let btn = room.status === 'Available' ? `<button onclick="bookRoom('${room.name}', '${date}', '${time}')" style="margin-top: 10px; width: 100%; padding: 10px; background: #10b981; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">Book Now</button>` : `<button disabled style="margin-top: 10px; width: 100%; padding: 10px; background: #7f1d1d; color: #fca5a5; font-weight: bold; border: none; border-radius: 5px; cursor: not-allowed;">Already Booked</button>`; grid.innerHTML += `<div class="food-card" style="border-top: 4px solid ${color}; ${bgStyle} text-align: center;"><i class="fa fa-door-open fa-2x" style="color: ${color}; margin-bottom: 10px;"></i><h3 style="margin: 0;">${room.name}</h3><p style="font-size: 11px; color: #94a3b8; margin: 5px 0 10px 0;">${room.type}</p><p style="color: ${color}; font-weight: bold; font-size: 14px;">${room.status}</p>${btn}</div>`; }); }
+    function bookRoom(roomName, date, time) { if(confirm(`Book ${roomName}?`)) { fetch('/api/rooms/book', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ room: roomName, date: date, time: time }) }).then(r => r.json()).then(data => { if (data.status === "error") { alert("🚨 " + data.message); } else { alert("✅ " + data.message); checkRooms(); } }); } }
+    function cancelBooking(bookingId) { if(confirm("Cancel?")) { fetch('/api/rooms/cancel', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: bookingId }) }).then(r => r.json()).then(data => { if (data.status === "error") { alert("🚨 " + data.message); } else { alert("✅ " + data.message); window.location.reload(); } }); } }
+    function completeBooking(bookingId) { if(confirm("Done?")) { fetch('/api/rooms/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: bookingId }) }).then(r => r.json()).then(data => { if (data.status === "success") { alert("✅ " + data.message); window.location.reload(); } }); } }
 
-    // ==========================================
-    // EVENTS LOGIC & CALENDAR
-    // ==========================================
+    // EVENTS
     const eventDates = [{% for e in events %}'{{ e[3] }}',{% endfor %}]; 
     let currentDate = new Date();
-    let activeFilterDate = null;
-    let activeFilterCategory = 'All';
-
     function renderCalendar() {
-        const monthYear = document.getElementById("cal-month-year");
-        const grid = document.getElementById("cal-grid");
-        grid.innerHTML = "";
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
+        const monthYear = document.getElementById("cal-month-year"); const grid = document.getElementById("cal-grid"); grid.innerHTML = "";
+        const year = currentDate.getFullYear(); const month = currentDate.getMonth();
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         monthYear.innerText = `${monthNames[month]} ${year}`;
-        
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        
+        const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
         for(let i=0; i < firstDay; i++) { grid.innerHTML += `<div class="cal-cell empty"></div>`; }
         for(let day=1; day <= daysInMonth; day++) {
-            let mStr = (month + 1).toString().padStart(2, '0');
-            let dStr = day.toString().padStart(2, '0');
-            let fullDateStr = `${year}-${mStr}-${dStr}`;
-            let hasEvent = eventDates.includes(fullDateStr);
-            let classNames = "cal-cell";
-            if(hasEvent) classNames += " has-event";
-            if(fullDateStr === activeFilterDate) classNames += " active";
-            grid.innerHTML += `<div class="${classNames}" onclick="filterByDate('${fullDateStr}')">${day}</div>`;
+            let mStr = (month + 1).toString().padStart(2, '0'); let dStr = day.toString().padStart(2, '0');
+            let fullDateStr = `${year}-${mStr}-${dStr}`; let hasEvent = eventDates.includes(fullDateStr);
+            grid.innerHTML += `<div class="cal-cell ${hasEvent ? 'has-event' : ''}">${day}</div>`;
         }
     }
-
     function changeMonth(dir) { currentDate.setMonth(currentDate.getMonth() + dir); renderCalendar(); }
-    function filterByDate(dateStr) { activeFilterDate = (activeFilterDate === dateStr) ? null : dateStr; renderCalendar(); applyFilters(); }
-    
-    function filterEvents(category, btn) {
-        activeFilterCategory = category;
-        document.querySelectorAll('.event-filter').forEach(b => { b.style.background = '#1e293b'; b.style.color = 'white'; b.style.border = '1px solid #334155'; });
-        btn.style.background = '#38bdf8'; btn.style.color = 'black'; btn.style.border = 'none';
-        applyFilters();
-    }
-
-    function applyFilters() {
-        let cards = document.querySelectorAll('.event-card');
-        let count = 0;
-        cards.forEach(card => {
-            let matchesCategory = (activeFilterCategory === 'All' || card.getAttribute('data-category') === activeFilterCategory);
-            let matchesDate = (!activeFilterDate || card.getAttribute('data-date') === activeFilterDate);
-            if(matchesCategory && matchesDate) { card.style.display = 'flex'; count++; } 
-            else { card.style.display = 'none'; }
-        });
-        let msg = document.getElementById('no-events-msg');
-        if(msg) msg.style.display = (count === 0) ? 'block' : 'none';
-    }
-
-    window.onload = function() { renderCalendar(); };
-
-    // --- NEW: Dynamic Modal for Proposing AND Editing Events ---
-    function openEventModal() { 
-        document.getElementById('ev-modal-title').innerHTML = '<i class="fa fa-bullhorn"></i> Submit an Event';
-        document.getElementById('ev-submit-btn').innerText = 'Submit for Approval';
-        document.getElementById('ev-edit-id').value = '';
-        
-        // Clear fields
-        document.getElementById('ev-title').value = '';
-        document.getElementById('ev-org').value = '';
-        document.getElementById('ev-desc').value = '';
-        document.getElementById('ev-date').value = '';
-        document.getElementById('ev-loc').value = '';
-        document.getElementById('ev-hour').value = '01';
-        document.getElementById('ev-minute').value = '00';
-        document.getElementById('ev-ampm').value = 'AM';
-        
-        document.getElementById('eventModal').style.display = 'flex'; 
-    }
-    
-    function openEditEventModal(btn) {
-        document.getElementById('ev-modal-title').innerHTML = '<i class="fa fa-pen"></i> Edit Event';
-        document.getElementById('ev-submit-btn').innerText = 'Update Event';
-        
-        // Grab data from the button's custom data attributes
-        document.getElementById('ev-edit-id').value = btn.getAttribute('data-id');
-        document.getElementById('ev-title').value = btn.getAttribute('data-title');
-        document.getElementById('ev-org').value = btn.getAttribute('data-org');
-        document.getElementById('ev-desc').value = btn.getAttribute('data-desc');
-        document.getElementById('ev-date').value = btn.getAttribute('data-date');
-        document.getElementById('ev-loc').value = btn.getAttribute('data-loc');
-        document.getElementById('ev-cat').value = btn.getAttribute('data-cat');
-        
-        // Parse "10:30 AM" into dropdowns
-        let timeStr = btn.getAttribute('data-time');
-        let timeParts = timeStr.match(/(\d+):(\d+)\s(AM|PM)/);
-        if(timeParts) {
-            document.getElementById('ev-hour').value = timeParts[1].padStart(2, '0');
-            document.getElementById('ev-minute').value = timeParts[2];
-            document.getElementById('ev-ampm').value = timeParts[3];
-        }
-        
-        document.getElementById('eventModal').style.display = 'flex'; 
-    }
-    
+    window.onload = function() { renderCalendar(); document.getElementById('ev-date').min = new Date().toISOString().split('T')[0]; };
+    function openEventModal() { document.getElementById('eventModal').style.display = 'flex'; }
     function closeEventModal() { document.getElementById('eventModal').style.display = 'none'; }
-    
     function submitEvent() {
-        let hr = document.getElementById('ev-hour').value;
-        let mn = document.getElementById('ev-minute').value;
-        let ampm = document.getElementById('ev-ampm').value;
-        let formattedTime = `${hr}:${mn} ${ampm}`;
-        
-        let editId = document.getElementById('ev-edit-id').value;
-
-        let data = {
-            id: editId,
-            title: document.getElementById('ev-title').value,
-            organizer: document.getElementById('ev-org').value,
-            desc: document.getElementById('ev-desc').value,
-            date: document.getElementById('ev-date').value,
-            time: formattedTime,
-            location: document.getElementById('ev-loc').value,
-            category: document.getElementById('ev-cat').value
-        };
-        
-        if(!data.title || !data.date || !data.desc || !data.location || !data.organizer) { 
-            alert("Please fill out all fields."); return; 
-        }
-        
-        // Determine if we are submitting a new event or editing an old one
-        let endpoint = editId ? '/api/events/edit' : '/api/events/submit';
-        
-        fetch(endpoint, {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
-        }).then(r => r.json()).then(res => {
-            if(res.status === "error") {
-                alert("🚨 " + res.message);
-            } else {
-                alert("✅ " + res.message); 
-                window.location.reload();
-            }
-        });
+        let hr = document.getElementById('ev-hour').value; let mn = document.getElementById('ev-minute').value; let ampm = document.getElementById('ev-ampm').value;
+        let data = { title: document.getElementById('ev-title').value, organizer: document.getElementById('ev-org').value, desc: document.getElementById('ev-desc').value, date: document.getElementById('ev-date').value, time: `${hr}:${mn} ${ampm}`, location: document.getElementById('ev-loc').value, cat: document.getElementById('ev-cat').value, reg_link: document.getElementById('ev-link').value };
+        fetch('/api/events/submit', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }).then(r => r.json()).then(res => { if(res.status === "error") { alert("🚨 " + res.message); } else { alert("✅ " + res.message); window.location.reload(); } });
     }
-
-    function rsvpEvent(id, btn) {
-        fetch('/api/events/rsvp', {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id})
-        }).then(r => r.json()).then(res => {
-            if(res.status === 'success') {
-                let countSpan = btn.parentElement.querySelector('.rsvp-count');
-                countSpan.innerText = parseInt(countSpan.innerText) + 1;
-                btn.innerHTML = "<i class='fa fa-check'></i> RSVP'd!";
-                btn.disabled = true;
-                btn.style.background = '#047857'; btn.style.cursor = 'not-allowed';
-            }
-        });
-    }
+    function ownerAction(eventId, action) { if(confirm("Are you sure?")) { fetch('/api/events/owner_action', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: eventId, action: action}) }).then(r => r.json()).then(res => { alert("✅ " + res.message); window.location.reload(); }); } }
+    function rsvpEvent(id, btn) { fetch('/api/events/rsvp', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id}) }).then(r => r.json()).then(res => { if(res.status === 'success') { btn.innerHTML = "<i class='fa fa-check'></i> RSVP'd!"; btn.disabled = true; btn.style.background = '#047857'; } }); }
 </script>
 </body>
 </html>

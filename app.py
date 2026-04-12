@@ -22,6 +22,7 @@ def init_db():
     c.execute("""CREATE TABLE IF NOT EXISTS room_bookings(id INTEGER PRIMARY KEY AUTOINCREMENT, room_name TEXT, student_name TEXT, booking_date TEXT, time_slot TEXT)""")
     c.execute("""CREATE TABLE IF NOT EXISTS event_rsvps(id INTEGER PRIMARY KEY AUTOINCREMENT, student_name TEXT, event_id INTEGER)""")
 
+    # Columns needed for specific updates: 'creator', 'status', 'registration_link'
     columns_to_add = [
         ("room_bookings", "status", "TEXT DEFAULT 'Pending'"),
         ("vendors", "revenue", "INTEGER DEFAULT 0"),
@@ -46,7 +47,8 @@ def init_db():
         ("events", "location", "TEXT DEFAULT 'TBA'"),
         ("events", "organizer", "TEXT DEFAULT 'Student Club'"),
         ("events", "rsvp_count", "INTEGER DEFAULT 0"),
-        ("events", "creator", "TEXT DEFAULT 'system'") # NEW: Remembers WHO made the event so they can edit it
+        ("events", "creator", "TEXT DEFAULT 'system'"), # NEW: Needed to check event ownership
+        ("events", "registration_link", "TEXT DEFAULT ''") # NEW: Needed for Google Forms, etc.
     ]
     for table, col, dtype in columns_to_add:
         try: c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {dtype}")
@@ -115,13 +117,15 @@ def dashboard():
     
     today_str = datetime.now().strftime("%Y-%m-%d")
     
-    # Grab the 'creator' (event[9]) so the HTML knows if this user owns the event
-    c.execute("SELECT id, title, description, date, time, location, category, organizer, rsvp_count, creator FROM events WHERE status='Approved' AND date >= ? ORDER BY date ASC", (today_str,))
+    # NEW: Added registration_link (8) and creator (9) for conditional display
+    # AND date >= ? ORDER BY date ASC
+    c.execute("SELECT id, title, description, date, time, location, category, organizer, rsvp_count, creator, registration_link FROM events WHERE status='Approved' AND date >= ? ORDER BY date ASC", (today_str,))
     upcoming_events = c.fetchall()
     
+    # Past RSVPs now also include events that have been marked 'Completed'
     c.execute("""SELECT e.id, e.title, e.date, e.time, e.location, e.category, e.organizer 
                  FROM events e JOIN event_rsvps r ON e.id = r.event_id 
-                 WHERE r.student_name=? AND e.date < ? ORDER BY e.date DESC""", (session["user"], today_str))
+                 WHERE r.student_name=? AND (e.date < ? OR e.status='Completed') ORDER BY e.date DESC""", (session["user"], today_str))
     past_rsvps = c.fetchall()
     
     c.execute("SELECT event_id FROM event_rsvps WHERE student_name=?", (session["user"],))
@@ -331,6 +335,26 @@ def remove_item():
 
 
 # ==========================================
+# FOOD SEARCH API (CASE INSENSITIVE FIXED)
+# ==========================================
+@app.route("/api/search")
+def search():
+    query = request.args.get("q", "").lower() # NEW: Convert query to lowercase
+    if not query: return jsonify([])
+    
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    # NEW: We are now wrapping both the column name AND the search term in LOWER() to fix case sensitivity.
+    # The '%' || ? || '%' syntax dynamically adds the wildcards needed for a partial match.
+    c.execute("""SELECT item_name, price, icon, category, diet, description, is_customizable, half_price, addons, vendor_name 
+                 FROM menu 
+                 WHERE LOWER(item_name) LIKE '%' || LOWER(?) || '%' AND availability='Available'""", (query,))
+    menu = c.fetchall()
+    conn.close()
+    return jsonify([{"name": m[0], "price": m[1], "icon": m[2], "category": m[3], "diet": m[4], "desc": m[5], "is_customizable": m[6], "half_price": m[7], "addons": m[8], "vendor_name": m[9]} for m in menu])
+
+
+# ==========================================
 # ROOM RESERVATION APIs 
 # ==========================================
 @app.route("/api/rooms/check")
@@ -380,36 +404,55 @@ def admin_room_action():
 @app.route("/api/events/submit", methods=["POST"])
 def submit_event():
     data = request.json
+    
+    # 1. Back-end security check to prevent past dates
+    try:
+        submitted_date = datetime.strptime(data["date"], "%Y-%m-%d").date()
+        if submitted_date < datetime.now().date():
+            return jsonify({"status": "error", "message": "Cannot submit an event on a past date!"})
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid date format."})
+
     organizer = data.get("organizer", session["user"])
     creator = session["user"] # Save who actually made this
+    
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute("INSERT INTO events (title, description, date, time, location, category, organizer, status, creator) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?)", 
-              (data["title"], data["desc"], data["date"], data["time"], data["location"], data["category"], organizer, creator))
+    
+    # NEW: Constitution of adding registration_link (Google Forms, etc.)
+    c.execute("INSERT INTO events (title, description, date, time, location, category, organizer, status, creator, registration_link) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', ?, ?)", 
+              (data["title"], data["desc"], data["date"], data["time"], data["location"], data["category"], organizer, creator, data.get("reg_link", "")))
     conn.commit()
     conn.close()
     return jsonify({"status": "success", "message": "Event submitted! Waiting for Admin approval."})
 
-@app.route("/api/events/edit", methods=["POST"])
-def edit_event():
-    data = request.json
+@app.route("/api/events/owner_action", methods=["POST"])
+def owner_event_action():
+    # NEW: Allows the original ID who proposed the event to mark it as Completed
+    event_id = request.json["id"]
+    action = request.json["action"]
     user = session["user"]
+    
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
     
-    # Security Check: Only the original creator can edit this event
-    c.execute("SELECT creator FROM events WHERE id=?", (data["id"],))
+    # Security check: Does this user OWN this event?
+    c.execute("SELECT creator FROM events WHERE id=?", (event_id,))
     ev = c.fetchone()
     
     if ev and ev[0] == user:
-        c.execute("UPDATE events SET title=?, description=?, date=?, time=?, location=?, category=?, organizer=?, status='Pending' WHERE id=?", 
-                  (data["title"], data["desc"], data["date"], data["time"], data["location"], data["category"], data["organizer"], data["id"]))
+        if action == 'completed':
+            c.execute("UPDATE events SET status='Completed' WHERE id=?", (event_id,))
+        elif action == 'cancel':
+             # Allow creator to cancel before approval if needed
+             c.execute("DELETE FROM events WHERE id=? AND status='Pending'", (event_id,))
+        
         conn.commit()
         conn.close()
-        return jsonify({"status": "success", "message": "Event updated! Sent back to Admin for re-approval."})
+        return jsonify({"status": "success", "message": f"Event marked as {action.capitalize()}!"})
     
     conn.close()
-    return jsonify({"status": "error", "message": "Unauthorized. Only the creator can edit this event."})
+    return jsonify({"status": "error", "message": "Unauthorized. Only the original creator can mark this event as done."})
 
 @app.route("/api/events/rsvp", methods=["POST"])
 def rsvp_event():
@@ -435,16 +478,6 @@ def admin_event_action():
         conn.close()
     return redirect("/admin")
 
-@app.route("/admin/delete_event/<int:id>", methods=["POST"])
-def delete_event(id):
-    if session.get("role") == "admin":
-        conn = sqlite3.connect("database.db")
-        c = conn.cursor()
-        c.execute("DELETE FROM events WHERE id=?", (id,))
-        c.execute("DELETE FROM event_rsvps WHERE event_id=?", (id,)) # Cleanup old RSVPs
-        conn.commit()
-        conn.close()
-    return redirect("/admin")
 
 @app.route("/logout")
 def logout():
